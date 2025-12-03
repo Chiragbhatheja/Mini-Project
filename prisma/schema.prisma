@@ -1,0 +1,50 @@
+// prisma/schema.prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id          String   @id @default(uuid())
+  name        String?
+  email       String   @unique
+  password    String
+  createdAt   DateTime @default(now())
+  alerts      Alert[]
+  feedbacks   Feedback[]
+}
+
+model AQIReading {
+  id          String   @id @default(uuid())
+  recordedAt  DateTime @default(now())
+  location    String?
+  pm25        Float
+  pm10        Float
+  aqiValue    Int
+  rawPayload  Json?
+}
+
+model Alert {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  alertTime String
+  pollutant String
+  threshold Float
+  alertEmail String?
+  createdAt DateTime @default(now())
+}
+
+model Feedback {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  message   String
+  rating    Int?
+  createdAt DateTime @default(now())
+}

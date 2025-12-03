@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BreathSafe - Air Quality Monitor</title>
+    <meta name="description" content="Real-time Air Quality Monitoring Dashboard">
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* New Pastel/Cream Color Palette */
+            --primary-color: #AEC6CF; /* Pastel Blue */
+            --secondary-color: #E5E4E2; /* Pastel Gray */
+            --success-color: #C1E1C1; /* Pastel Green */
+            --warning-color: #FDFD96; /* Pastel Yellow */
+            --danger-color: #FFB6B3;  /* Pastel Red */
+            
+            --bg-color: #FAF9F6;      /* Cream/Off-white background */
+            --card-bg: rgba(255, 255, 255, 0.8); /* White card */
+            --text-dark: #3a3b3c;    /* Dark gray text */
+            --text-secondary: #5a5b5c; /* Medium gray text */
+            --border-color: rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-color); /* Use new cream background */
+            color: var(--text-dark);   /* Use new dark text color */
+            overflow-x: hidden;
+        }
+        
+        /* Navbar specific styles */
+        .navbar-custom {
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            padding: 1rem 1.5rem;
+        }
+        .navbar-custom .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--text-dark);
+        }
+        .navbar-custom .nav-link {
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: color 0.2s;
+        }
+        .navbar-custom .nav-link:hover,
+        .navbar-custom .nav-link.active {
+            color: var(--primary-color);
+        }
+        
+        /* Login/Signup Message Box - Now uses external links */
+        .login-message-box {
+            background-color: #f0f5f8; /* Light pastel blue */
+            color: #3e5f6e;
+            padding: 12px 1.5rem;
+            text-align: center;
+            font-size: 0.95rem;
+            /* Displayed by default if not logged in */
+        }
+        .login-message-box a {
+            color: #3c7a94;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .login-message-box a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Profile Image Button Style */
+        .profile-btn-icon {
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--primary-color);
+            transition: color 0.2s;
+            margin-left: 10px;
+        }
+        .profile-btn-icon:hover {
+            color: #5d8a9b;
+        }
+
+        /* FIX: Ensure welcome li aligns content correctly when JS sets display:flex */
+        .navbar-custom #welcome-li.logged-in {
+            display: flex !important; 
+            align-items: center; 
+        }
+
+        .navbar-custom #welcome-li {
+            display: none; /* Controlled by JS initially */
+            align-items: center; 
+        }
+
+        /* Spinner styles */
+        .spinner-sm {
+            width: 1rem;
+            height: 1rem;
+            border-width: 0.2em;
+        }
+        .spinner-md {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-width: 0.25em;
+        }
+
+        /* Hero Section Styles */
+        .hero-section {
+            position: relative;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #FAF9F6 0%, #F0EBE3 100%);
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(250, 249, 246, 0.1); /* Lighter overlay */
+            backdrop-filter: blur(5px);
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 10;
+        }
+
+        .aqi-status-badge {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            padding: 12px 24px;
+            border-radius: 50px;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 32px;
+            color: var(--text-dark); /* Text color for badge */
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--success-color);
+            animation: pulse 2s infinite;
+        }
+
+        .aqi-value {
+            font-size: 6rem;
+            font-weight: 900;
+            line-height: 1;
+            margin-bottom: 16px;
+            color: var(--text-dark); /* Dark text */
+        }
+
+        .aqi-level-badge {
+            background: linear-gradient(135deg, var(--success-color), #d1f0c7); /* Lighter green */
+            color: #3b5d46; /* Darker green text for contrast */
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 1.2rem;
+            display: inline-block;
+            min-width: 120px; /* For loading state */
+            text-align: center;
+        }
+
+        .gradient-text {
+            /* Dark text gradient */
+            background: linear-gradient(135deg, #333 0%, #777 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .air-quality-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        }
+
+        .floating-particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.1); /* Darker particles for light bg */
+            border-radius: 50%;
+            animation: floatUp 4s linear infinite;
+        }
+
+        /* AQI Card Section */
+        .aqi-card-section {
+            min-height: 100vh;
+            background: var(--bg-color);
+            position: relative;
+            padding: 80px 0;
+        }
+
+        .main-aqi-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.05); /* Lighter shadow */
+        }
+
+        .aqi-scale {
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 16px 0;
+            background-color: #eee;
+        }
+
+        .scale-segment {
+            height: 100%;
+            float: left;
+            width: 16.67%;
+        }
+
+        .weather-card {
+            /* Pastel blue gradient */
+            background: linear-gradient(135deg, rgba(174, 198, 207, 0.2), rgba(174, 198, 207, 0.4));
+            border: 1px solid rgba(174, 198, 207, 0.3);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+        .weather-card .display-4 {
+            min-width: 60px; /* For spinner */
+            text-align: center;
+        }
+
+
+        .weather-detail-card {
+            background: rgba(230, 230, 230, 0.5); /* Light gray card */
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        /* Dashboard Section */
+        .dashboard-section {
+            /* Light pastel gradient */
+            background: linear-gradient(135deg, #FDFBF5 0%, #F0EBE3 50%, #EAE0D5 100%);
+            padding: 80px 0;
+            min-height: 100vh;
+        }
+
+        .dashboard-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05); /* Lighter shadow */
+            height: 100%;
+        }
+
+        /* Update form controls for light theme */
+        .form-control, .form-select {
+            background: rgba(0, 0, 0, 0.02) !important;
+            border: 1px solid var(--border-color) !important;
+            color: var(--text-dark) !important;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background: rgba(0, 0, 0, 0.03) !important;
+            border-color: var(--primary-color) !important;
+            box-shadow: 0 0 0 0.2rem rgba(174, 198, 207, 0.25) !important;
+            color: var(--text-dark) !important;
+        }
+        
+        .form-control::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.7;
+        }
+
+        .alert-rule-card {
+            background: rgba(51, 65, 85, 0.03); /* Very light bg */
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+
+        .location-badge {
+            background: rgba(174, 198, 207, 0.1);
+            color: #5d8a9b;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        /* Personalization Section */
+        .personalization-section {
+            background: var(--bg-color);
+            padding: 80px 0;
+        }
+
+        .health-profile-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        }
+
+        .health-profile-card:hover {
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+        }
+
+        .health-profile-card.active {
+            border-color: var(--primary-color);
+            background: rgba(174, 198, 207, 0.1);
+        }
+
+        .slider-container {
+            margin: 24px 0;
+        }
+
+        .custom-range {
+            background: rgba(0, 0, 0, 0.1);
+            height: 6px;
+            border-radius: 3px;
+        }
+
+        .time-preference-card {
+            background: rgba(51, 65, 85, 0.03); /* Very light bg */
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        /* Text color overrides for Bootstrap classes */
+        .text-light {
+            color: var(--text-secondary) !important;
+        }
+        .text-white {
+            color: var(--text-dark) !important;
+        }
+        .text-primary {
+             color: var(--primary-color) !important;
+        }
+        .text-success {
+             color: #3b5d46 !important; /* Darker green */
+        }
+        .text-warning {
+             color: #b45309 !important; /* Darker yellow/orange */
+        }
+        .text-danger {
+             color: #b91c1c !important; /* Darker red */
+        }
+        
+        /* Badge overrides */
+        .badge.bg-success {
+            background-color: var(--success-color) !important;
+            color: #3b5d46 !important;
+        }
+         .badge.bg-warning {
+            background-color: var(--warning-color) !important;
+            color: #b45309 !important;
+        }
+         .badge.bg-danger {
+            background-color: var(--danger-color) !important;
+            color: #b91c1c !important;
+        }
+        .badge.bg-secondary {
+            background-color: var(--secondary-color) !important;
+            color: var(--text-secondary) !important;
+        }
+        .badge.bg-primary {
+             background-color: var(--primary-color) !important;
+             color: #2c5a6d !important;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes floatUp {
+            0% { 
+                opacity: 0;
+                transform: translateY(100vh) translateX(0px);
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% { 
+                opacity: 0;
+                transform: translateY(-100px) translateX(50px);
+            }
+        }
+
+        /* Utility Classes */
+        .text-gradient {
+            /* Darker gradient for light bg */
+            background: linear-gradient(135deg, var(--primary-color), #5d8a9b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .btn-primary-custom {
+            /* Updated pastel button */
+            background: linear-gradient(135deg, var(--primary-color), #c2d7dd);
+            border: none;
+            padding: 12px 32px;
+            font-weight: 600;
+            border-radius: 12px;
+            color: #2c5a6d; /* Darker text for contrast */
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(174, 198, 207, 0.4);
+        }
+
+        .btn-outline-custom {
+            border: 2px solid rgba(0, 0, 0, 0.3);
+            color: var(--text-dark);
+            background: transparent;
+            padding: 12px 32px;
+            font-weight: 600;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-custom:hover {
+            background: rgba(0, 0, 0, 0.05);
+            color: var(--text-dark);
+        }
+        
+        .btn-outline-light {
+            border-color: var(--border-color);
+            color: var(--text-secondary);
+        }
+        .btn-outline-light:hover {
+            background: rgba(0, 0, 0, 0.05);
+            color: var(--text-dark);
+        }
+        .btn-primary {
+             background-color: var(--primary-color);
+             border-color: var(--primary-color);
+             color: #2c5a6d;
+        }
+         .btn-primary:hover {
+             background-color: #9ab9c2;
+             border-color: #9ab9c2;
+             color: #2c5a6d;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .aqi-value {
+                font-size: 4rem;
+            }
+            .character {
+                font-size: 5rem;
+            }
+            .main-aqi-card {
+                padding: 24px;
+            }
+            .dashboard-card {
+                padding: 20px;
+            }
+            .navbar-custom {
+                padding: 1rem;
+            }
+        }
+
+        /* Tab Styles */
+        .nav-tabs-custom {
+            background: rgba(0, 0, 0, 0.03);
+            border-radius: 12px;
+            padding: 4px;
+            border: none;
+            display: inline-flex;
+        }
+
+        .nav-tabs-custom .nav-link {
+            border: none;
+            color: var(--text-secondary);
+            background: transparent;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tabs-custom .nav-link.active {
+            background: var(--primary-color);
+            color: #2c5a6d;
+            box-shadow: 0 4px 8px rgba(174, 198, 207, 0.3);
+        }
+        
+        /* NEW: Denied Location Box Style */
+        .location-denied-box {
+            background-color: var(--danger-color);
+            color: #6d0a0a;
+            padding: 15px 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+        .location-denied-box a {
+            color: #6d0a0a;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar navbar-expand-md navbar-custom sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">BreathSafe</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="weather_prediction.html">Weather Prediction</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="health_profile.html">Health Profile</a>
+                    </li>
+                    <li class="nav-item">
+                         <a class="nav-link" href="create_alert.html">Create Alert</a>
+                    </li>
+                    
+                    <li class="nav-item d-flex align-items-center" id="welcome-li" style="display: none;">
+                        <span class="nav-link text-dark py-0" id="welcome-message"></span>
+                        <a class="nav-link profile-btn-icon" href="profile.html" title="User Profile"> 
+                             <i class="bi bi-person-circle"></i>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item" id="logout-li" style="display: none;">
+                        <a class="nav-link" id="logout-link" href="#" style="font-weight: 600; color: var(--danger-color);">Logout</a>
+                    </li>
+
+                    </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="login-message-box" id="login-message-box">
+        <p class="mb-0">
+            <i class="bi bi-info-circle me-2"></i>
+            For personalized alerts and profile management, please 
+            <a href="signup.html">Login or Sign up</a>.
+        </p>
+    </div>
+
+    <section class="hero-section">
+        <div class="hero-overlay"></div>
+        <div class="floating-particles" id="particles"></div>
+        
+        <div class="container hero-content">
+            <div class="row align-items-center min-vh-100">
+                
+                <div class="col-12 text-center" id="location-denied-error" style="display:none;" data-aos="fade-down">
+                     <div class="location-denied-box mx-auto" style="max-width: 600px;">
+                         <p class="fw-bold mb-1">
+                             <i class="bi bi-exclamation-triangle me-2"></i>
+                             Location Access Denied or Blocked.
+                         </p>
+                         <p class="mb-0 small">
+                             We are showing air quality for **London** (fallback). To see your actual location, please enable location permissions for this site in your browser settings and refresh the page.
+                         </p>
+                     </div>
+                </div>
+                
+                <div class="col-12 text-center mb-4" data-aos="fade-up">
+                    <div class="aqi-status-badge">
+                        <div class="status-dot" id="hero-status-dot"></div>
+                        <span class="fw-bold fs-5" id="hero-status-text">
+                            <div class="spinner-border spinner-sm" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 text-center text-lg-start" data-aos="fade-right" data-aos-delay="200">
+                    <div class="aqi-value" id="hero-aqi-value">--</div>
+                    <div class="text-secondary fs-5 mb-4">AQI Level</div>
+                    <div class="aqi-level-badge" id="hero-aqi-badge">
+                        <div class="spinner-border spinner-sm" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 text-center" data-aos="fade-up" data-aos-delay="400">
+                    <h1 class="display-3 fw-bold mb-4">
+                        Breathe<br>
+                        <span class="gradient-text">Safe</span>
+                    </h1>
+                    <p class="fs-5 text-secondary mb-4" id="hero-status-message">Loading air quality data for your location...</p>
+                </div>
+                
+                <div class="col-lg-4" data-aos="fade-left" data-aos-delay="600">
+                    <div class="air-quality-card">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-secondary">PM2.5</span>
+                            <span class="fw-bold" id="hero-pm25">-- μg/m³</span>
+                        </div>
+                        <div class="small" id="hero-pm25-message">Loading...</div>
+                    </div>
+                    
+                    <div class="air-quality-card">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-secondary">PM10</span>
+                            <span class="fw-bold" id="hero-pm10">-- μg/m³</span>
+                        </div>
+                        <div class="small" id="hero-pm10-message">Loading...</div>
+                    </div>
+                    
+                    <div class="air-quality-card">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-secondary">Health Impact</span>
+                            <span class="fw-bold" id="hero-health-impact">--</span>
+                        </div>
+                        <div class="small" id="hero-health-message">Loading...</div>
+                    </div>
+                </div>
+                
+                <div class="col-12 text-center mt-5" data-aos="fade-up" data-aos-delay="800">
+                    <a href="monitoring_page.html" class="btn btn-primary-custom me-3 mb-3">
+                        <i class="bi bi-shield-check me-2"></i>
+                        Start Monitoring
+                    </a>
+                    <a href="create_alert.html" class="btn btn-outline-custom mb-3">
+                        <i class="bi bi-bell me-2"></i>
+                        Get Alerts
+                    </a>
+                </div>
+                
+                <div class="col-12 text-center mt-4" data-aos="fade-up" data-aos-delay="1000">
+                    <div class="d-flex justify-content-center gap-4 flex-wrap">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="status-dot" style="background: var(--text-dark);"></div>
+                            <span class="small text-secondary">Real-time Updates</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="status-dot bg-success"></div>
+                            <span class="small text-secondary">Safe to Breathe</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="status-dot" style="background: var(--primary-color);"></div>
+                            <span class="small text-secondary">Personalized Alerts</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="aqi-card-section" id="aqi-card">
+        <div class="container">
+            <div class="row justify-content-center mb-5" data-aos="fade-up">
+                <div class="col-auto">
+                    <ul class="nav nav-tabs nav-tabs-custom" id="aqiTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="aqi-tab" data-bs-toggle="tab" data-bs-target="#aqi-pane" type="button" role="tab">
+                                🌬️ AQI
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="weather-tab" data-bs-toggle="tab" data-bs-target="#weather-pane" type="button" role="tab">
+                                ☀️ Weather
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="aqiTabsContent">
+                <div class="tab-pane fade show active" id="aqi-pane" role="tabpanel">
+                    <div class="row justify-content-center" data-aos="fade-up" data-aos-delay="200">
+                        <div class="col-lg-10">
+                            <div class="main-aqi-card">
+                                <div class="row mb-4">
+                                    <div class="col-lg-8">
+                                        <h3 class="h4 fw-bold mb-3">Real-time Air Quality Index (AQI)</h3>
+                                        <h4 class="text-gradient fs-5 fw-bold mb-2" id="main-location">
+                                            <div class="spinner-border spinner-sm" role="status"></div>
+                                            Loading location...
+                                        </h4>
+                                        <div class="d-flex align-items-center gap-3 text-secondary small">
+                                            <div class="d-flex align-items-center gap-1">
+                                                <i class="bi bi-clock"></i>
+                                                <span id="main-last-updated">Loading...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-4 text-end">
+                                        <button class="btn btn-outline-light btn-sm me-2" id="locate-me-btn">
+                                            <i class="bi bi-geo-alt me-1"></i>
+                                            Locate me
+                                        </button>
+                                        <button class="btn btn-outline-light btn-sm me-2">
+                                            <i class="bi bi-heart"></i>
+                                        </button>
+                                        <button class="btn btn-outline-light btn-sm">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-lg-4">
+                                        <div class="d-flex align-items-center gap-2 mb-4">
+                                            <div class="status-dot" id="main-status-dot"></div>
+                                            <span class="small fw-medium text-secondary">Live AQI</span>
+                                        </div>
+                                        
+                                        <div class="display-1 fw-bold mb-2" id="main-aqi-value">--</div>
+                                        <div class="small text-secondary mb-4">(AQI-US)</div>
+                                        
+                                        <div class="mb-4">
+                                            <span class="badge fs-6 px-4 py-2 rounded-pill" id="main-aqi-badge">
+                                                <div class="spinner-border spinner-sm" role="status"></div>
+                                            </span>
+                                        </div>
+                                        
+                                        <div class="small text-secondary mb-4">Air Quality is</div>
+                                        
+                                        <div class="mb-4">
+                                            <div class="d-flex justify-content-between mb-3">
+                                                <span class="text-secondary">PM10:</span>
+                                                <span class="fw-bold" id="main-pm10">-- μg/m³</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-3">
+                                                <span class="text-secondary">PM2.5:</span>
+                                                <span class="fw-bold" id="main-pm25">-- μg/m³</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between small text-secondary mb-2">
+                                                <span>Good</span>
+                                                <span>Moderate</span>
+                                                <span>Poor</span>
+                                                <span>Unhealthy</span>
+                                                <span>Severe</span>
+                                                <span>Hazardous</span>
+                                            </div>
+                                            <div class="aqi-scale">
+                                                <div class="scale-segment" style="background: var(--success-color);"></div>
+                                                <div class="scale-segment" style="background: var(--warning-color);"></div>
+                                                <div class="scale-segment" style="background: #ffc280;"></div>
+                                                <div class="scale-segment" style="background: var(--danger-color);"></div>
+                                                <div class="scale-segment" style="background: #d7aadd;"></div>
+                                                <div class="scale-segment" style="background: #cca7a7;"></div>
+                                            </div>
+                                            <div class="d-flex justify-content-between small text-secondary mt-2">
+                                                <span>0</span>
+                                                <span>50</span>
+                                                <span>100</span>
+                                                <span>150</span>
+                                                <span>200</span>
+                                                <span>300</span>
+                                                <span>301+</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-lg-4 d-flex align-items-center justify-content-center">
+                                        
+                                    </div>
+                                    
+                                    <div class="col-lg-4">
+                                        <div class="weather-card mb-4">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <div class="display-4" id="main-weather-icon">
+                                                    <div class="spinner-border text-primary" role="status"></div>
+                                                </div>
+                                                <div>
+                                                    <div class="h2 fw-bold mb-0" id="main-weather-temp">--°C</div>
+                                                    <div class="text-secondary" id="main-weather-desc">--</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="weather-detail-card">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="bi bi-droplet-half" style="color: #60a5fa;"></i>
+                                                    <span class="text-secondary">Humidity</span>
+                                                </div>
+                                                <span class="fw-bold" id="main-humidity">--%</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="weather-detail-card">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="bi bi-wind" style="color: var(--success-color);"></i>
+                                                    <span class="text-secondary">Wind Speed</span>
+                                                </div>
+                                                <span class="fw-bold" id="main-wind">-- km/h</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="weather-detail-card">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="bi bi-sun" style="color: #f59e0b;"></i>
+                                                    <span class="text-secondary">UV Index</span>
+                                                </div>
+                                                <span class="fw-bold" id="main-uv">--</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tab-pane fade" id="weather-pane" role="tabpanel">
+                    <div class="row justify-content-center" data-aos="fade-up" data-aos-delay="200">
+                        <div class="col-lg-10">
+                            <div class="main-aqi-card text-center">
+                                <h3 class="h4 fw-bold mb-4">Weather Information</h3>
+                                <div class="display-4 mb-4">☀️</div>
+                                <p class="text-secondary">Weather details would be displayed here with extended forecast information, temperature trends, and weather patterns.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="dashboard-section" id="dashboard">
+        <div class="container">
+            <div class="row mb-5" data-aos="fade-up">
+                <div class="col-12 text-center">
+                    <h2 class="display-4 fw-bold mb-4">Your Air Quality Dashboard</h2>
+                    <p class="fs-5 text-secondary">Monitor, configure, and manage your personalized air quality alerts all in one place.</p>
+                </div>
+            </div>
+            
+            <div class="row mb-5 justify-content-center">
+                
+                <div class="col-lg-8 mb-4" data-aos="fade-up" id="dashboard-alerts"> 
+                    <div class="dashboard-card">
+                        <div class="d-flex align-items-center gap-3 mb-4">
+                            <i class="bi bi-bell text-primary fs-4"></i>
+                            <div>
+                                <h4 class="h5 fw-bold mb-1">Create New Alert Rule</h4>
+                                <p class="text-secondary mb-0 small">Set up personalized air quality monitoring for your locations</p>
+                            </div>
+                        </div>
+                        
+                        <form id="alertForm">
+                            <div class="mb-3">
+                                <label for="location" class="form-label">Location</label>
+                                <input type="text" class="form-control" id="location" placeholder="Enter your location (e.g., Home, Office)">
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="pollutant" class="form-label">Pollutant</label>
+                                    <select class="form-select" id="pollutant">
+                                        <option value="">Select pollutant</option>
+                                        <option value="pm25">PM2.5</option>
+                                        <option value="pm10">PM10</option>
+                                        <option value="aqi">AQI Overall</option>
+                                        <option value="ozone">Ozone</option>
+                                        <option value="no2">NO2</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="threshold" class="form-label">Threshold</label>
+                                    <input type="number" class="form-control" id="threshold" placeholder="e.g., 60" required>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="startTime" class="form-label">Alert Time (HH:MM)</label>
+                                    <input type="time" class="form-control" id="startTime" required>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="endTime" class="form-label">End Time (Optional)</label>
+                                    <input type="time" class="form-control" id="endTime">
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="alertEmail" class="form-label">Recipient Email Address</label>
+                                <input type="email" class="form-control" id="alertEmail" placeholder="e.g., secondary_alert@example.com" required>
+                                <div class="form-text">
+                                    This is the email that will receive the AQI alert (AQI is checked against the threshold at the Alert Time).
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="form-label d-block">Notification Method</label>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <button type="button" class="btn btn-outline-light btn-sm notification-method" data-method="email">
+                                        <i class="bi bi-envelope me-1"></i> Email
+                                    </button>
+                                    <button type="button" class="btn btn-outline-light btn-sm notification-method" data-method="push">
+                                        <i class="bi bi-phone me-1"></i> Push
+                                    </button>
+                                    <button type="button" class="btn btn-outline-light btn-sm notification-method" data-method="telegram">
+                                        <i class="bi bi-chat-dots me-1"></i> Telegram
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary-custom w-100">Create Scheduled Alert</button>
+                        </form>
+                    </div>
+                </div> 
+            </div>
+            
+            <div class="row" data-aos="fade-up">
+                <div class="col-12">
+                    <div class="dashboard-card">
+                        <div class="d-flex align-items-center gap-3 mb-4">
+                            <i class="bi bi-clock text-primary fs-4"></i>
+                            <div>
+                                <h4 class="h5 fw-bold mb-1">Active Alert Rules</h4>
+                                <p class="text-secondary mb-0 small">Manage your existing air quality monitoring rules</p>
+                            </div>
+                        </div>
+                        
+                        <div id="alertRules">
+                            
+                            <div class="text-center text-secondary p-4" style="background: rgba(51, 65, 85, 0.03); border-radius: 12px;">
+                                <i class="bi bi-bell-slash fs-3"></i>
+                                <p class="mt-2 mb-0 fw-medium">No active alerts found.</p>
+                                <p class="small mb-0">Create a new alert rule above to get started.</p>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="personalization-section" id="personalization">
+        <div class="container">
+            <div class="row mb-5" data-aos="fade-up">
+                <div class="col-12 text-center">
+                    <h2 class="display-4 fw-bold mb-4">Personalize Your Experience</h2>
+                    <p class="fs-5 text-secondary">Customize alert thresholds based on your health profile, lifestyle, and daily activities.</p>
+                </div>
+            </div>
+            
+            <div class="row mb-5">
+                <div class="col-lg-6 mb-4" data-aos="fade-right">
+                    <div class="dashboard-card">
+                        <div class="d-flex align-items-center gap-3 mb-4">
+                            <i class="bi bi-bullseye text-primary fs-4"></i>
+                            <div>
+                                <h4 class="h5 fw-bold mb-1">Health Profile</h4>
+                                <p class="text-secondary mb-0 small">Choose a profile that matches your health needs and sensitivity to air pollution</p>
+                            </div>
+                        </div>
+                        
+                        <div id="healthProfiles">
+                            <div class="health-profile-card active" data-profile="General Adult" data-aos="fade-up" data-aos-delay="100">
+                                <div class="d-flex align-items-start gap-3">
+                                    <div class="p-3 rounded-circle" style="background: var(--success-color)20;">
+                                        <i class="bi bi-person text-success fs-5"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h5 class="fw-bold mb-0">General Adult</h5>
+                                            <span class="badge bg-success">AQI ≤ 100</span>
+                                        </div>
+                                        <p class="text-secondary mb-3 small">Standard air quality thresholds for healthy adults</p>
+                                        <div class="d-flex gap-4 small">
+                                            <span>PM2.5: ≤25μg/m³</span>
+                                            <span>PM10: ≤50μg/m³</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="health-profile-card" data-profile="Sensitive Individual" data-aos="fade-up" data-aos-delay="200">
+                                <div class="d-flex align-items-start gap-3">
+                                    <div class="p-3 rounded-circle" style="background: var(--warning-color)20;">
+                                        <i class="bi bi-heart text-warning fs-5"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h5 class="fw-bold mb-0">Sensitive Individual</h5>
+                                            <span class="badge bg-warning">AQI ≤ 75</span>
+                                        </div>
+                                        <p class="text-secondary mb-3 small">Lower thresholds for people with respiratory conditions</p>
+                                        <div class="d-flex gap-4 small">
+                                            <span>PM2.5: ≤15μg/m³</span>
+                                            <span>PM10: ≤30μg/m³</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                <div class="col-lg-6 mb-4" data-aos="fade-left">
+                    <div class="dashboard-card">
+                        <div class="d-flex align-items-center gap-3 mb-4">
+                            <i class="bi bi-sliders text-primary fs-4"></i>
+                            <div>
+                                <h4 class="h5 fw-bold mb-1">Custom Thresholds</h4>
+                                <p class="text-secondary mb-0 small">Fine-tune your alert thresholds for each pollutant type</p>
+                            </div>
+                        </div>
+                        
+                        <div class="slider-container">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <label class="form-label mb-0">PM2.5 Threshold</label>
+                                <span class="badge bg-secondary" id="pm25Value">25 μg/m³</span>
+                            </div>
+                            <input type="range" class="form-range custom-range" min="5" max="100" step="5" value="25" id="pm25Slider">
+                            <div class="d-flex justify-content-between small text-secondary mt-2">
+                                <span>5 μg/m³ (Very Strict)</span>
+                                <span>100 μg/m³ (Lenient)</span>
+                            </div>
+                        </div>
+                        
+                        <div class="slider-container">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <label class="form-label mb-0">PM10 Threshold</label>
+                                <span class="badge bg-secondary" id="pm10Value">50 μg/m³</span>
+                            </div>
+                            <input type="range" class="form-range custom-range" min="10" max="200" step="10" value="50" id="pm10Slider">
+                            <div class="d-flex justify-content-between small text-secondary mt-2">
+                                <span>10 μg/m³ (Very Strict)</span>
+                                <span>200 μg/m³ (Lenient)</span>
+                            </div>
+                        </div>
+                        
+                        <div class="slider-container">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <label class="form-label mb-0">AQI Overall Threshold</label>
+                                <span class="badge bg-secondary" id="aqiValue">100 AQI</span>
+                            </div>
+                            <input type="range" class="form-range custom-range" min="25" max="300" step="25" value="100" id="aqiSlider">
+                            <div class="d-flex justify-content-between small text-secondary mt-2">
+                                <span>25 AQI (Very Strict)</span>
+                                <span>300 AQI (Lenient)</span>
+                            </div>
+                        </div>
+                        
+                        <div class="border-top border-secondary pt-4 mt-4">
+                            <h5 class="fw-bold mb-4">Alert Preferences</h5>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <label class="form-label mb-0">Instant Alerts</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="instantAlerts" checked>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <label class="form-label mb-0">Daily Forecast</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="dailyForecast" checked>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <label class="form-label mb-0">Trend Analysis</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="trendAnalysis">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row" data-aos="fade-up">
+                <div class="col-12">
+                    <div class="dashboard-card">
+                        <div class="d-flex align-items-center gap-3 mb-4">
+                            <i class="bi bi-clock text-primary fs-4"></i>
+                            <div>
+                                <h4 class="h5 fw-bold mb-1">Activity-Based Monitoring</h4>
+                                <p class="text-secondary mb-0 small">Set different sensitivity levels based on your daily activities and schedule</p>
+                            </div>
+                        </div>
+                        
+                        <div class="row g-3" id="timePreferences">
+                            <div class="col-md-6 col-lg-4" data-aos="zoom-in" data-aos-delay="100">
+                                <div class="time-preference-card">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="fw-bold mb-0">Early Morning</h5>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" checked>
+                                        </div>
+                                    </div>
+                                    <p class="text-secondary mb-2 small">5:00 - 8:00 AM</p>
+                                    <p class="text-primary mb-0 small">Morning walk/jog</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-lg-4" data-aos="zoom-in" data-aos-delay="200">
+                                <div class="time-preference-card">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="fw-bold mb-0">Commute Hours</h5>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" checked>
+                                        </div>
+                                    </div>
+                                    <p class="text-secondary mb-2 small">8:00 - 10:00 AM</p>
+                                    <p class="text-primary mb-0 small">Travel to work</p>
+                                </div>
+                            </div>
+                             <div class="col-md-6 col-lg-4" data-aos="zoom-in" data-aos-delay="300">
+                                <div class="time-preference-card">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="fw-bold mb-0">Evening</h5>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox">
+                                        </div>
+                                    </div>
+                                    <p class="text-secondary mb-2 small">6:00 - 8:00 PM</p>
+                                    <p class="text-primary mb-0 small">Evening exercise</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <a href="save_preferences.html" class="btn btn-primary-custom px-5">Save Preferences</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jwt-decode/3.1.2/jwt-decode.min.js"></script>
+    
+    <script>
+        // Initialize AOS
+        AOS.init({
+            duration: 800,
+            easing: 'ease-in-out',
+            once: true,
+            offset: 50
+        });
+
+        // --- MOCK LOGIN SETUP (FOR TESTING) ---
+        // Placeholder JWT decodes to: { name: "Air Quality User", email: "user@arquality.com" }
+        const MOCK_JWT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiQWlyIFF1YWxpdHkgVXNlciIsImVtYWlsIjoidXNlckBhcnF1YWxpdHkuY29tIiwic3ViIjoiMTIzNDU2Nzg5MCIsImlhdCI6MTY3ODg4NjQwMH0.P1W-8v9nF8O_xS3A1C0J5x7e2E_t7Kx_9fR6H6A5b0g';
+        
+        // -----------------------------------------------------------------------------
+
+        // Floating particles animation (retained)
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            if (!particlesContainer) return;
+            
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 4 + 's';
+                particle.style.animationDuration = (Math.random() * 2 + 3) + 's';
+                
+                const size = Math.random() * 10 + 5;
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
+                
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        // Notification method selection (retained)
+        function initializeNotificationMethods() {
+            const methods = document.querySelectorAll('.notification-method');
+            methods.forEach(method => {
+                method.addEventListener('click', function() {
+                    this.classList.toggle('active');
+                    if (this.classList.contains('active')) {
+                        this.classList.remove('btn-outline-light');
+                        this.classList.add('btn-primary');
+                    } else {
+                        this.classList.remove('btn-primary');
+                        this.classList.add('btn-outline-light');
+                    }
+                });
+            });
+        }
+
+        // Add click handlers for health profiles (retained)
+        function initializeHealthProfileCards() {
+            const cards = document.querySelectorAll('.health-profile-card');
+            if(cards.length > 0) {
+                cards.forEach(card => {
+                    card.addEventListener('click', function() {
+                        cards.forEach(c => c.classList.remove('active'));
+                        this.classList.add('active');
+                    });
+                });
+            }
+        }
+        
+        // Initialize slider updates (retained)
+        function initializeSliders() {
+            const sliders = [
+                { id: 'pm25Slider', valueId: 'pm25Value', unit: 'μg/m³' },
+                { id: 'pm10Slider', valueId: 'pm10Value', unit: 'μg/m³' },
+                { id: 'aqiSlider', valueId: 'aqiValue', unit: 'AQI' }
+            ];
+
+            sliders.forEach(slider => {
+                const element = document.getElementById(slider.id);
+                const valueElement = document.getElementById(slider.valueId);
+                
+                if (element && valueElement) {
+                    element.addEventListener('input', function() {
+                        valueElement.textContent = `${this.value} ${slider.unit}`;
+                    });
+                }
+            });
+        }
+
+        // Alert form submission handler (UPDATED)
+        function initializeAlertForm() {
+            const form = document.getElementById('alertForm');
+
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const location = document.getElementById('location').value;
+                const pollutant = document.getElementById('pollutant').value;
+                const threshold = document.getElementById('threshold').value;
+                const alertTime = document.getElementById('startTime').value; 
+                const alertEmail = document.getElementById('alertEmail').value; // Get Recipient Email
+                
+                const token = localStorage.getItem('token');
+
+                if (!token) {
+                    return alert('You must be logged in to create a scheduled alert.');
+                }
+                if (!alertTime || !pollutant || !threshold || !alertEmail) {
+                    return alert('Please fill out all required fields: Time, Pollutant, Threshold, and Recipient Email.');
+                }
+
+                // Prepare button for loading state
+                const submitButton = form.querySelector('button[type="submit"]');
+                submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Scheduling...';
+                submitButton.disabled = true;
+
+                try {
+                    const response = await fetch('/alert', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            alertTime: alertTime, 
+                            pollutant: pollutant,
+                            threshold: threshold,
+                            location: location,
+                            alertEmail: alertEmail // Send recipient email
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        alert('Alert rule created successfully and scheduled! Check your email at the set time.');
+                        form.reset(); // Clear the form
+                    } else {
+                        alert(`Failed to create alert: ${data.error || 'Server error.'}`);
+                    }
+                } catch (err) {
+                    console.error('Alert submission failed:', err);
+                    alert('A network error occurred while submitting the alert.');
+                } finally {
+                    submitButton.innerHTML = 'Create Scheduled Alert';
+                    submitButton.disabled = false;
+                }
+            });
+            
+            document.getElementById('locate-me-btn').addEventListener('click', () => {
+                document.getElementById('main-location').innerHTML = '<div class="spinner-border spinner-sm" role="status"></div> Locating...';
+                getLocationAndFetchData();
+            });
+        }
+        
+        // --- AUTH/STATE LOGIC (Fixed) ---
+        function checkAuthStatus() {
+            // Read token (if present) and show/hide UI accordingly.
+            const token = localStorage.getItem('token');
+            const userName = localStorage.getItem('user_name'); // Get the name saved by signup.html
+
+            const loginMessageBox = document.getElementById('login-message-box');
+            const welcomeLi = document.getElementById('welcome-li');
+            const welcomeMessage = document.getElementById('welcome-message');
+            const logoutLi = document.getElementById('logout-li');
+
+            // Default: treat as logged-out
+            if (!token) {
+                if (loginMessageBox) loginMessageBox.style.display = 'block';
+                if (welcomeLi) welcomeLi.style.display = 'none';
+                if (logoutLi) logoutLi.style.display = 'none';
+                return false;
+            }
+
+            try {
+                // Logged In
+                if (loginMessageBox) loginMessageBox.style.display = 'none';
+                
+                // FIX: Use saved userName or fallback
+                if (welcomeMessage) welcomeMessage.textContent = `Welcome, ${userName || 'User'}!`;
+                
+                if (welcomeLi) {
+                    welcomeLi.style.display = 'flex';
+                    welcomeLi.classList.add('logged-in'); // Added class for CSS override
+                }
+                if (logoutLi) logoutLi.style.display = 'block';
+
+                return true;
+            } catch (err) {
+                console.warn('Invalid token or decode failure:', err);
+                localStorage.removeItem('token');
+                localStorage.removeItem('user_name');
+                if (loginMessageBox) loginMessageBox.style.display = 'block';
+                if (welcomeLi) welcomeLi.style.display = 'none';
+                if (logoutLi) logoutLi.style.display = 'none';
+                return false;
+            }
+        }
+
+        // Data fetching functions (simplified/retained for structure)
+        function handleGeolocationError(error) {
+            console.warn("Geolocation denied or failed.", error.code, error.message);
+            document.getElementById('location-denied-error').style.display = 'block';
+            // Fallback to London (used as a default)
+            fetchDataFromBackend(51.5074, 0.1278); // FIXED: Call with fallback coordinates (London)
+        }
+        
+        function updateUILoadingState(message) {
+            document.getElementById('main-location').innerHTML = message;
+            // Set other main display elements to a loading state or default
+            document.getElementById('hero-status-text').innerHTML = '<div class="spinner-border spinner-sm" role="status"><span class="visually-hidden">Loading...</span></div>';
+            document.getElementById('main-aqi-value').textContent = '--';
+            document.getElementById('hero-aqi-value').textContent = '--';
+            document.getElementById('hero-status-message').textContent = 'Loading air quality data for your location...';
+        }
+
+
+        async function fetchDataFromBackend(lat, lon) {
+             document.getElementById('main-location').innerHTML = '<div class="spinner-border spinner-sm" role="status"></div> Locating...';
+             
+             try {
+                // FIXED: API fetch logic restored
+                const response = await fetch(`/api/v1/aqi-data?lat=${lat}&lon=${lon}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    updateUI(data);
+                } else {
+                    console.error("API Error:", data.error);
+                    alert(`Failed to fetch AQI data: ${data.error}`);
+                    // Display fallback loading message
+                    updateUILoadingState('Error fetching data.');
+                }
+            } catch (err) {
+                console.error("Fetch failed:", err);
+                alert('A network error occurred while fetching AQI data. Check server logs.');
+                // Display fallback loading message
+                updateUILoadingState('Network error.');
+            }
+        }
+
+        // ADDED: Complete UI update logic to show the fetched data
+        function updateUI(data) {
+            const aqi = data.aqi;
+            const components = data.components;
+            const weather = data.weather;
+            const location = data.location;
+            
+            // --- Set Color based on AQI Level ---
+            let statusClass = 'bg-success';
+            let dotColorClass = 'bg-success';
+            switch (aqi.levelIndex) {
+                case 2: statusClass = 'bg-warning'; dotColorClass = 'bg-warning'; break;
+                case 3: 
+                case 4: statusClass = 'bg-danger'; dotColorClass = 'bg-danger'; break; // Unhealthy/Poor/Moderate
+                case 5: statusClass = 'bg-danger'; dotColorClass = 'bg-danger'; break; // Severe/Hazardous are also danger
+            }
+            
+            // --- Hero Section Updates ---
+            document.getElementById('hero-status-dot').className = `status-dot ${dotColorClass}`;
+            document.getElementById('hero-status-text').textContent = `Air Quality: ${aqi.level}`;
+            document.getElementById('hero-aqi-value').textContent = aqi.value;
+            document.getElementById('hero-aqi-badge').textContent = aqi.level;
+            document.getElementById('hero-aqi-badge').className = `aqi-level-badge ${statusClass}`;
+            document.getElementById('hero-status-message').textContent = aqi.message;
+            document.getElementById('hero-pm25').textContent = `${components.pm25} μg/m³`;
+            document.getElementById('hero-pm10').textContent = `${components.pm10} μg/m³`;
+            document.getElementById('hero-health-impact').textContent = aqi.healthImpact;
+            document.getElementById('hero-health-message').textContent = aqi.message;
+            
+            // --- Main Card Updates ---
+            document.getElementById('main-location').textContent = location.name;
+            document.getElementById('main-last-updated').textContent = `Last updated: ${location.lastUpdated}`;
+            document.getElementById('main-status-dot').className = `status-dot ${dotColorClass}`;
+            document.getElementById('main-aqi-value').textContent = aqi.value;
+            document.getElementById('main-aqi-badge').textContent = aqi.level;
+            document.getElementById('main-aqi-badge').className = `badge fs-6 px-4 py-2 rounded-pill ${statusClass}`;
+            document.getElementById('main-pm10').textContent = `${components.pm10} μg/m³`;
+            document.getElementById('main-pm25').textContent = `${components.pm25} μg/m³`;
+            
+            // --- Weather Card Updates (Using simple emojis for icons) ---
+            let weatherIcon = '☀️'; // Default sun
+            if (weather.description.includes('rain')) weatherIcon = '🌧️';
+            else if (weather.description.includes('cloud')) weatherIcon = '☁️';
+            else if (weather.description.includes('clear')) weatherIcon = '☀️';
+            else if (weather.description.includes('snow')) weatherIcon = '❄️';
+            else if (weather.description.includes('mist') || weather.description.includes('haze')) weatherIcon = '🌫️';
+            
+            document.getElementById('main-weather-icon').innerHTML = weatherIcon;
+            document.getElementById('main-weather-temp').textContent = `${weather.temp}°C`;
+            document.getElementById('main-weather-desc').textContent = weather.description;
+            document.getElementById('main-humidity').textContent = `${weather.humidity}%`;
+            document.getElementById('main-wind').textContent = `${weather.windSpeed} km/h`;
+            document.getElementById('main-uv').textContent = 'N/A'; // UV Index is not in OpenWeather's standard AQI call
+        }
+
+        function getLocationAndFetchData() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        fetchDataFromBackend(lat, lon);
+                    },
+                    (error) => {
+                        handleGeolocationError(error);
+                    }
+                );
+            } else {
+                handleGeolocationError({ code: 0, message: "Geolocation not supported" });
+            }
+        }
+
+        // Initialize everything when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            createParticles();
+            initializeNotificationMethods();
+            initializeHealthProfileCards();
+            initializeSliders();
+            initializeAlertForm(); // Initialize the form handler
+            
+            // This is the core fix to display the name and status correctly
+            checkAuthStatus();
+            
+            // Initial Data fetching
+            getLocationAndFetchData();
+
+            // Attach logout handler here (safe after DOM is ready)
+            const logoutLink = document.getElementById('logout-link');
+            if (logoutLink) {
+                logoutLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user_name');
+                    // update UI immediately
+                    checkAuthStatus();
+                    // redirect to signup/login page
+                    window.location.href = 'signup.html'; // Redirect to the authentication page
+                });
+            }
+
+            // If login happens on another page (signup.html), respond to storage changes
+            window.addEventListener('storage', function(event) {
+                if (event.key === 'token' || event.key === 'user_name') {
+                    // small debounce guard
+                    setTimeout(checkAuthStatus, 50);
+                }
+            });
+        });
+
+        // Re-initialize AOS on window resize
+        window.addEventListener('resize', function() {
+            AOS.refresh();
+        });
+    </script>
+</body>
+</html>
